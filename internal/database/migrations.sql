@@ -1,90 +1,51 @@
 -- Assumption here is cases will never be deleted
 
+--- ENUMS ------------
+
+CREATE TYPE user_role_enum AS ENUM ('admin', 'investigator', 'officer', 'auditor');
+CREATE TYPE case_levels_enum AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE person_type_enum AS ENUM ('victim', 'suspect', 'witness');
+CREATE TYPE gender_enum AS ENUM ('male', 'female');
+CREATE TYPE evidence_type_enum AS ENUM ('text', 'image');
+CREATE TYPE audit_action_enum AS ENUM ('added', 'updated', 'soft_deleted', 'hard_deleted');
+CREATE TYPE report_status_enum AS ENUM ('pending', 'ongoing', 'closed');
+
+---- Sequences -----------------
 CREATE SEQUENCE staff_id_seq START 100;
-CREATE TABLE users (
-    id TEXT PRIMARY KEY UNIQUE NOT NULL DEFAULT 'A' || nextval('staff_id_seq'),
-    name VARCHAR(100) NOT NULL,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role TEXT CHECK (role IN ('admin', 'investigator', 'officer', 'auditor')) NOT NULL,
-    clearance_level TEXT CHECK (clearance_level IN ('low', 'medium', 'high', 'critical')) NOT NULL
-);
-
-INSERT INTO users (id, name, username, password, role, clearance_level) VALUES ('A001', 'Admin User', 'admin', crypt('123', gen_salt('bf')), 'admin', 'critical');
-
-
 CREATE SEQUENCE case_number_seq START 10000;
-CREATE TABLE cases (
-    id SERIAL PRIMARY KEY,
-    case_number VARCHAR(10) UNIQUE NOT NULL DEFAULT 'C' || nextval('case_number_seq'),
-    case_name VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL CHECK (length(description) <= 100),
-    area VARCHAR(100) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    created_by TEXT NOT NULL REFERENCES users(id),
-    created_by_role TEXT NOT NULL,
-    created_by_name TEXT NOT NULL ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    case_type TEXT CHECK (case_type IN ('criminal', 'civil')) NOT NULL,
-    level TEXT CHECK (level IN ('low', 'medium', 'high', 'critical')) NOT NULL,
-    reported_by UUID NOT NULL REFERENCES citizens(id) ON DELETE CASCADE
-);
-
-UPDATE cases
-SET created_by = 'DELETED'
-WHERE created_by IS NULL;
 
 
-CREATE TABLE case_assignees (
-    case_id INT NOT NULL REFERENCES cases(id),
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (case_id, user_id)
-);
-
-CREATE TABLE persons (
-    id SERIAL PRIMARY KEY,
-    case_id INT NOT NULL REFERENCES cases(id),
-    type TEXT CHECK (type IN ('victim', 'suspect', 'witness')) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    age INT NOT NULL CHECK (age > 0),
-    gender TEXT CHECK (gender IN ('male', 'female', 'other')) NOT NULL,
-    role TEXT NOT NULL
-);
-
-CREATE TABLE evidence (
-    id SERIAL PRIMARY KEY,
-    case_id INT NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-    officer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type TEXT CHECK (type IN ('text', 'image')) NOT NULL,
-    content TEXT NOT NULL,  -- if image then url else the text file
-    size TEXT,
-    remarks TEXT,
-    deleted BOOLEAN DEFAULT FALSE
-);
-
--- remember that we also want a table for the TOP 10 WORDS too!.
--- Add another table if we every query the API
-
-CREATE TABLE audit_logs (
-    id SERIAL PRIMARY KEY,
-    action TEXT NOT NULL CHECK (action IN ('added', 'updated', 'soft_deleted', 'hard_deleted')),
-    evidence_id INT NOT NULL REFERENCES evidence(id) ON DELETE CASCADE,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+----- Functions -------------------------------
+CREATE OR REPLACE FUNCTION generate_unique_staff_id() 
+RETURNS TEXT AS $$
+DECLARE
+    new_id TEXT;
+    seq_num BIGINT;
+BEGIN
+    LOOP
+        seq_num := nextval('staff_id_seq');
+        new_id := 'A' || seq_num::TEXT;
+        IF NOT EXISTS (SELECT 1 FROM users WHERE id = new_id) THEN
+            RETURN new_id;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 
-
-CREATE SEQUENCE report_number_seq START 20000;
-CREATE TABLE reports (
-    id SERIAL PRIMARY KEY,
-    report_id VARCHAR(10) UNIQUE NOT NULL DEFAULT 'R' || nextval('report_number_seq'),
-    citizen_id UUID NOT NULL REFERENCES citizens(id) ON DELETE CASCADE,
-    case_id INT REFERENCES cases(id) ON DELETE SET NULL,
-    status TEXT CHECK (status IN ('pending', 'ongoing', 'closed')) NOT NULL DEFAULT 'pending',
-    reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
+CREATE OR REPLACE FUNCTION generate_unique_case_number()
+RETURNS TEXT AS $$
+DECLARE
+    new_case_number TEXT;
+BEGIN
+    LOOP
+        new_case_number := 'C' || nextval('case_number_seq')::TEXT;
+        IF NOT EXISTS (SELECT 1 FROM cases WHERE case_number = new_case_number) THEN
+            RETURN new_case_number;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- CREATE FUNCTION soft_delete_evidence(evidence_id INT, user_id TEXT) RETURNS VOID AS $$
@@ -93,3 +54,93 @@ CREATE TABLE reports (
 --     INSERT INTO audit_logs (action, evidence_id, user_id) VALUES ('soft_deleted', evidence_id, user_id);
 -- END;
 -- $$ LANGUAGE plpgsql;
+
+-- TABLES ---------------------------
+
+CREATE TABLE users (
+    id TEXT PRIMARY KEY DEFAULT generate_unique_staff_id(),
+    name VARCHAR(100) NOT NULL,
+    password TEXT NOT NULL,
+    role user_role_enum NOT NULL,
+    clearance_level case_levels_enum NOT NULL,
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+
+CREATE TABLE cases (
+    case_number TEXT PRIMARY KEY DEFAULT generate_unique_case_number(),
+    case_name VARCHAR(100) NOT NULL,
+    description VARCHAR(100) NOT NULL, -- 100 characters; truncate in Go if needed
+    area VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    created_by TEXT REFERENCES users(id) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    case_type TEXT NOT NULL DEFAULT 'criminal',
+    level case_levels_enum NOT NULL
+);
+
+CREATE TABLE case_assignees (
+    case_number TEXT NOT NULL REFERENCES cases(case_number),
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (case_number, user_id)
+);
+
+CREATE TABLE persons (
+    id SERIAL PRIMARY KEY,
+    case_number TEXT NOT NULL REFERENCES cases(case_number),
+    type person_type_enum NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    age INT NOT NULL CHECK (age > 0),
+    gender gender_enum NOT NULL,
+    role VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE evidence (
+    id SERIAL PRIMARY KEY,
+    case_number TEXT NOT NULL REFERENCES cases(case_number),
+    officer_id TEXT NOT NULL REFERENCES users(id),
+    type evidence_type_enum NOT NULL,
+    content TEXT NOT NULL,  -- If image then URL, else text content
+    size TEXT,
+    remarks TEXT,
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    action audit_action_enum NOT NULL,
+    evidence_id INT REFERENCES evidence(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+CREATE TABLE reports (
+    report_id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    civil_id TEXT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    role VARCHAR(100) DEFAULT 'Citizen' NOT NULL,
+    case_number TEXT REFERENCES cases(case_number),
+    status report_status_enum NOT NULL DEFAULT 'pending'
+);
+
+--- Populate the Tables ------------------------
+
+INSERT INTO users (id, name, password, role, clearance_level) VALUES ('A001', 'Admin User', '123', 'admin', 'critical'),
+('A101', 'Detective Jane Smith', '123123', 'investigator', 'high'),
+('A102', 'Officer Mike Johnson', '123123', 'officer', 'medium'),
+('A104', 'Auditor Alice Green', '123123', 'auditor', 'medium');
+
+
+INSERT INTO cases (case_number, case_name, description, area, city, created_by, created_at, case_type, level) VALUES 
+('C12345', 'Theft Investigation', 'Investigation of a reported theft at a local store.', 'Downtown', 'New York', 'A001', '2025-03-10T14:30:00Z', 'criminal', 'high');
+
+INSERT INTO case_assignees (case_number, user_id) VALUES ('C12345', 'A101'), ('C12345', 'A102'), ('C12345', 'A104');
+
+-- Insert persons associated with the case
+INSERT INTO persons (case_number, type, name, age, gender, role) VALUES ('C12345', 'suspect', 'Michael Brown', 32, 'male', 'Primary Suspect'), 
+('C12345', 'victim', 'Sarah Parker', 28, 'female', 'Store Owner');
+
+INSERT INTO reports (email, civil_id, name, role, case_number) VALUES ('bob.wilson@gmail.com', 'A12356879', 'Citizen Bob Wilson', 'Citizen', 'C12345'); -- Should be 12 however chose to serialise it instead
