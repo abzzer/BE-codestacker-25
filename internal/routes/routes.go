@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// RegisterRoutes sets up all the API routes
 func RegisterRoutes(app *fiber.App) {
 	// Public Route
 	app.Get("/", func(c *fiber.Ctx) error {
