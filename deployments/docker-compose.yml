@@ -11,23 +11,24 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      # - pg-data:/var/lib/postgresql/data
+      - ../internal/database/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
 
   minio:
     image: minio/minio
     restart: always
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
     ports:
       - "9000:9000"
       - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
 
   app:
-    build: 
+    build:
       context: ..
       dockerfile: Dockerfile
     depends_on:
@@ -39,12 +40,17 @@ services:
       DB_USER: admin
       DB_PASSWORD: password
       DB_NAME: crime_management
-      MINIO_ENDPOINT: http://minio:9000
+
+      MINIO_ENDPOINT: minio
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
+
+      APP_PORT: 8080
+      JWT_SECRET: thisissosecretprobably
+
     ports:
       - "8080:8080"
 
 volumes:
-  pg-data:
+  # pg-data:
   minio-data:

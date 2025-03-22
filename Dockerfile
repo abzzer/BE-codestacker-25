@@ -1,19 +1,13 @@
-# FROM golang:1.23 AS builder
+FROM golang:1.23-alpine
 
-# WORKDIR /app
+WORKDIR /app
 
-# COPY go.mod go.sum ./
-# RUN go mod download
+COPY . . 
 
-# COPY . .
+RUN go get -d -v ./...
 
-# RUN go build -o codestacker-api ./cmd/main.go
+RUN go build -o crime-manager-api ./cmd/main.go
 
-# FROM alpine:latest
-# WORKDIR /root/
+EXPOSE 8080
 
-# COPY --from=builder /app/codestacker-api .
-
-# EXPOSE 8080
-
-# CMD ["./codestacker-api"]
+CMD ["./crime-manager-api"]
