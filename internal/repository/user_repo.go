@@ -2,44 +2,102 @@ package repository
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/abzzer/BE-codestacker-25/internal/database"
 	"github.com/abzzer/BE-codestacker-25/internal/models"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateUser(username, password, role string) (*models.User, error) {
+func CreateUser(name, password, role, clearance string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	id := uuid.New()
+	query := `
+		INSERT INTO users (name, password, role, clearance_level)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id;
+	`
 
-	query := `INSERT INTO users (id, username, password, role) VALUES ($1, $2, $3, $4) RETURNING created_at`
-	row := database.DB.QueryRow(context.Background(), query, id, username, string(hashedPassword), role)
-
-	var createdAt string
-	err = row.Scan(&createdAt)
+	var id string
+	err = database.DB.QueryRow(context.Background(), query, name, string(hashedPassword), role, clearance).Scan(&id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	log.Println("User created successfully")
-	return &models.User{ID: id, Username: username, Role: role}, nil
+	return id, nil
 }
 
-func GetUser(username string) (*models.User, error) {
-	query := `SELECT id, username, password, role, created_at FROM users WHERE username=$1`
-	row := database.DB.QueryRow(context.Background(), query, username)
+func DeleteUser(id string) error {
+	query := `UPDATE users SET deleted = TRUE WHERE id = $1;`
+	_, err := database.DB.Exec(context.Background(), query, id)
+	return err
+}
 
-	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Password, &user.Role, &user.CreatedAt)
-	if err != nil {
-		return nil, err
+func UpdateUser(id string, input models.UpdateUserInput) error {
+	setClauses := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if input.Name != nil {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, *input.Name)
+		argIdx++
 	}
 
-	return &user, nil
+	if input.Password != nil {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		setClauses = append(setClauses, fmt.Sprintf("password = $%d", argIdx))
+		args = append(args, string(hashed))
+		argIdx++
+	}
+
+	if input.Role != nil {
+		setClauses = append(setClauses, fmt.Sprintf("role = $%d", argIdx))
+		args = append(args, *input.Role)
+		argIdx++
+	}
+
+	if input.ClearanceLevel != nil {
+		setClauses = append(setClauses, fmt.Sprintf("clearance_level = $%d", argIdx))
+		args = append(args, *input.ClearanceLevel)
+		argIdx++
+	}
+
+	if len(setClauses) == 0 {
+		return errors.New("no valid fields to update")
+	}
+
+	args = append(args, id)
+
+	query := fmt.Sprintf(`
+		UPDATE users SET %s
+		WHERE id = $%d AND deleted = FALSE;
+	`, strings.Join(setClauses, ", "), argIdx)
+
+	_, err := database.DB.Exec(context.Background(), query, args...)
+	return err
+}
+
+func GetPasswordAndRoleByUserID(userID string) (string, string, error) {
+	query := `
+		SELECT password, role
+		FROM users
+		WHERE id = $1 AND deleted = FALSE;
+	`
+
+	var password, role string
+	err := database.DB.QueryRow(context.Background(), query, userID).Scan(&password, &role)
+	if err != nil {
+		return "", "", errors.New("invalid user ID or user is deleted")
+	}
+
+	return password, role, nil
 }

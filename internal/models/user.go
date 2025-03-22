@@ -15,8 +15,3 @@ type UpdateUserInput struct {
 	Role           *string `json:"role"`
 	ClearanceLevel *string `json:"clearance_level"`
 }
-
-type LoginRequest struct {
-	UserID   string `json:"user_id"`
-	Password string `json:"password"`
-}
