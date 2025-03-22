@@ -1,8 +1,23 @@
 # BE-codestacker-25
 
+Struture this late -> 
 
-- Also there is a problem with teh dockerfile that must be fixed before release but not so importnat currnetly
+# HERE I WANT TO PUT THE IMAGE OF THE DB STRUCTURE EXPLAINED  + APPLICATION STRUCTRE
 
-- problem with env file if distirbuted
-docker-compose 
+
+STEPS FOR RUNNING.
+
+Pre-reqs: Docker
+
+Run MAKE docker-up -> Loads everythibg -> App will be at LOCALHOST:8080 
+
+-> Interact with RAW JSON
+
+# Contents table for all funcality and endpoints
+
+# Mandetory -> login details: 
+
+
+
+# 1. 
 
