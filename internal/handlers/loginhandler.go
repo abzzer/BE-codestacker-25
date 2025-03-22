@@ -23,7 +23,7 @@ func LoginHandler(c *fiber.Ctx) error {
 	passwordHash, role, err := repository.GetPasswordAndRoleByUserID(req.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid user ID or password",
+			"error": "the repo not work",
 		})
 	}
 
