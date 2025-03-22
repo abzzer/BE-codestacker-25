@@ -13,6 +13,9 @@ Run MAKE docker-up -> Loads everythibg -> App will be at LOCALHOST:8080
 
 -> Interact with RAW JSON
 
+
+NOTE TO RUN LOCALLY OUTSIDE OF THE DOCKER OCNTAINER YOU NEED A .ENV file -> Check  docker compose for this
+
 # Contents table for all funcality and endpoints
 
 # Mandetory -> login details: 

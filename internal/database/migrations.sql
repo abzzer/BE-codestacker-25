@@ -128,10 +128,10 @@ CREATE TABLE reports (
 
 --- Populate the Tables ------------------------
 
-INSERT INTO users (id, name, password, role, clearance_level) VALUES ('A001', 'Admin User', '123', 'admin', 'critical'),
-('A101', 'Detective Jane Smith', '123123', 'investigator', 'high'),
-('A102', 'Officer Mike Johnson', '123123', 'officer', 'medium'),
-('A104', 'Auditor Alice Green', '123123', 'auditor', 'medium');
+INSERT INTO users (id, name, password, role, clearance_level) VALUES ('A001', 'Admin User', '$2a$10$J14ZMfR26KYUczdLamBmpOLaEMp8nibjGITnY.AZpkmz6k6h7hh/q', 'admin', 'critical'),
+('A101', 'Detective Jane Smith', '$2a$10$J14ZMfR26KYUczdLamBmpOLaEMp8nibjGITnY.AZpkmz6k6h7hh/q', 'investigator', 'high'),
+('A102', 'Officer Mike Johnson', '$2a$10$J14ZMfR26KYUczdLamBmpOLaEMp8nibjGITnY.AZpkmz6k6h7hh/q', 'officer', 'medium'),
+('A104', 'Auditor Alice Green', '$2a$10$J14ZMfR26KYUczdLamBmpOLaEMp8nibjGITnY.AZpkmz6k6h7hh/q', 'auditor', 'medium');
 
 
 INSERT INTO cases (case_number, case_name, description, area, city, created_by, created_at, case_type, level) VALUES 
