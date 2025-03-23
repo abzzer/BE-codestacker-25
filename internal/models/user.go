@@ -8,14 +8,17 @@ const (
 	RoleInvestigator UserRole = "investigator"
 	RoleOfficer      UserRole = "officer"
 	RoleAuditor      UserRole = "auditor"
-)
 
-const (
 	ClearanceLow      ClearanceLevel = "low"
 	ClearanceMedium   ClearanceLevel = "medium"
 	ClearanceHigh     ClearanceLevel = "high"
 	ClearanceCritical ClearanceLevel = "critical"
 )
+
+type LoginRequest struct {
+	UserID   string `json:"user_id"`
+	Password string `json:"password"`
+}
 
 type User struct {
 	ID             string         `json:"id"`

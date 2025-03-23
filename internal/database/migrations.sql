@@ -8,7 +8,7 @@ CREATE TYPE person_type_enum AS ENUM ('victim', 'suspect', 'witness');
 CREATE TYPE gender_enum AS ENUM ('male', 'female');
 CREATE TYPE evidence_type_enum AS ENUM ('text', 'image');
 CREATE TYPE audit_action_enum AS ENUM ('added', 'updated', 'soft_deleted', 'hard_deleted');
-CREATE TYPE report_status_enum AS ENUM ('pending', 'ongoing', 'closed');
+CREATE TYPE case_status_enum AS ENUM ('pending', 'ongoing', 'closed');
 
 ---- Sequences -----------------
 CREATE SEQUENCE staff_id_seq START 100;
@@ -76,6 +76,7 @@ CREATE TABLE cases (
     created_by TEXT REFERENCES users(id) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     case_type TEXT NOT NULL DEFAULT 'criminal',
+    status case_status_enum NOT NULL DEFAULT 'pending',
     level case_levels_enum NOT NULL
 );
 
@@ -121,9 +122,11 @@ CREATE TABLE reports (
     email TEXT NOT NULL,
     civil_id TEXT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    role VARCHAR(100) DEFAULT 'Citizen' NOT NULL,
+    role VARCHAR(100) NOT NULL DEFAULT 'Citizen',
     case_number TEXT REFERENCES cases(case_number),
-    status report_status_enum NOT NULL DEFAULT 'pending'
+    description TEXT,
+    area TEXT,
+    city TEXT
 );
 
 --- Populate the Tables ------------------------
@@ -143,4 +146,5 @@ INSERT INTO case_assignees (case_number, user_id) VALUES ('C12345', 'A101'), ('C
 INSERT INTO persons (case_number, type, name, age, gender, role) VALUES ('C12345', 'suspect', 'Michael Brown', 32, 'male', 'Primary Suspect'), 
 ('C12345', 'victim', 'Sarah Parker', 28, 'female', 'Store Owner');
 
-INSERT INTO reports (email, civil_id, name, role, case_number) VALUES ('bob.wilson@gmail.com', 'A12356879', 'Citizen Bob Wilson', 'Citizen', 'C12345'); -- Should be 12 however chose to serialise it instead
+INSERT INTO reports (email, civil_id, name, role, case_number, description, area, city)
+VALUES ('bob.wilson@gmail.com', 'A12356879', 'Citizen Bob Wilson', 'Citizen', 'C12345', 'Saw there was a theft at XYZ store', 'Downtown', 'New York'); -- Should be 12 however chose to serialise it instead
