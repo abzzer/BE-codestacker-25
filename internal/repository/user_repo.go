@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateUser(name, password, role, clearance string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func CreateUser(user models.UserCreate) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +24,8 @@ func CreateUser(name, password, role, clearance string) (string, error) {
 	`
 
 	var id string
-	err = database.DB.QueryRow(context.Background(), query, name, string(hashedPassword), role, clearance).Scan(&id)
+	err = database.DB.QueryRow(context.Background(), query, user.Name, string(hashedPassword), string(user.Role), string(user.ClearanceLevel)).Scan(&id)
+
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +39,11 @@ func DeleteUser(id string) error {
 	return err
 }
 
-func UpdateUser(id string, input models.UpdateUserInput) error {
+func UpdateUser(input models.UpdateUser) error {
+	if input.ID == "" {
+		return errors.New("user ID is required")
+	}
+
 	setClauses := []string{}
 	args := []interface{}{}
 	argIdx := 1
@@ -72,10 +77,10 @@ func UpdateUser(id string, input models.UpdateUserInput) error {
 	}
 
 	if len(setClauses) == 0 {
-		return errors.New("no valid fields to update")
+		return errors.New("no fields to update")
 	}
 
-	args = append(args, id)
+	args = append(args, input.ID)
 
 	query := fmt.Sprintf(`
 		UPDATE users SET %s
@@ -86,7 +91,7 @@ func UpdateUser(id string, input models.UpdateUserInput) error {
 	return err
 }
 
-func GetPasswordAndRoleByUserID(userID string) (string, string, error) {
+func GetPasswordAndRoleByUserID(id string) (string, string, error) {
 	query := `
 		SELECT password, role
 		FROM users
@@ -94,7 +99,7 @@ func GetPasswordAndRoleByUserID(userID string) (string, string, error) {
 	`
 
 	var password, role string
-	err := database.DB.QueryRow(context.Background(), query, userID).Scan(&password, &role)
+	err := database.DB.QueryRow(context.Background(), query, id).Scan(&password, &role)
 	if err != nil {
 		return "", "", errors.New("invalid user ID or user is deleted")
 	}
