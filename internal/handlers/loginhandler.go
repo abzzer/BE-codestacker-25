@@ -2,18 +2,14 @@ package handlers
 
 import (
 	"github.com/abzzer/BE-codestacker-25/internal/auth"
+	"github.com/abzzer/BE-codestacker-25/internal/models"
 	"github.com/abzzer/BE-codestacker-25/internal/repository"
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type LoginRequest struct {
-	UserID   string `json:"user_id"`
-	Password string `json:"password"`
-}
-
 func LoginHandler(c *fiber.Ctx) error {
-	var req LoginRequest
+	var req models.LoginRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
