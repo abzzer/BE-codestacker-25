@@ -34,6 +34,12 @@ func CreateUser(user models.UserCreate) (string, error) {
 }
 
 func DeleteUser(id string) error {
+	id = strings.ToUpper(id)
+
+	if id == "A001" {
+		return errors.New("can't delete the default user")
+	}
+
 	query := `UPDATE users SET deleted = TRUE WHERE id = $1;`
 	_, err := database.DB.Exec(context.Background(), query, id)
 	return err
@@ -42,6 +48,12 @@ func DeleteUser(id string) error {
 func UpdateUser(input models.UpdateUser) error {
 	if input.ID == "" {
 		return errors.New("user ID is required")
+	}
+
+	input.ID = strings.ToUpper(input.ID)
+
+	if input.ID == "A001" {
+		return errors.New("can't change the default user")
 	}
 
 	setClauses := []string{}

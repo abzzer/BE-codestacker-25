@@ -37,7 +37,7 @@ type UserCreate struct {
 }
 
 type UpdateUser struct {
-	ID             string          `json:"id"`
+	ID             string          `json:"-"`
 	Name           *string         `json:"name"`
 	Password       *string         `json:"password"`
 	Role           *UserRole       `json:"role"`
