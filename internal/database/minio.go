@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -24,6 +25,21 @@ func ConnectMinIO() {
 		log.Fatalf("Failed to connect to MinIO: %v", err)
 	}
 
-	log.Println("connection to MinIO successful")
-	MinioClient = client
+	MinioClient = client // Public var to interact with buckets
+	log.Println("Connection to MinIO successful")
+
+	ctx := context.Background()
+	bucketName := "evidence-bucket"
+	exists, errBuck := client.BucketExists(ctx, bucketName)
+	if errBuck != nil {
+		log.Fatalf("Couldn't connect to check for bucket: %v", errBuck)
+	}
+
+	if !exists {
+		err = client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Fatalf("Failed to create the backet: %v", err)
+		}
+		log.Println("Successfully created the bucket with the name:", bucketName)
+	}
 }
