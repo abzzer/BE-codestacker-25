@@ -101,6 +101,16 @@ func UpdateCase(input models.CaseUpdate) error {
 	return err
 }
 
+func UpdateCaseStatus(input models.CaseStatusUpdate) error {
+	if input.CaseNumber == "" {
+		return errors.New("case_number is required")
+	}
+
+	query := `UPDATE cases SET status = $1 WHERE case_number = $2;`
+	_, err := database.DB.Exec(context.Background(), query, input.Status, input.CaseNumber)
+	return err
+}
+
 func AddPersonToCase(person models.PersonRequest) (int, error) {
 	query := `
 		INSERT INTO persons (case_number, type, name, age, gender, role)
@@ -116,4 +126,43 @@ func AddPersonToCase(person models.PersonRequest) (int, error) {
 	}
 
 	return personID, nil
+}
+
+func GetCaseLevelByNumber(caseNumber string) (models.CaseLevel, error) {
+	query := `SELECT level FROM cases WHERE case_number = $1`
+	var level string
+
+	err := database.DB.QueryRow(context.Background(), query, caseNumber).Scan(&level)
+	if err != nil {
+		return "", errors.New("could not find case or retrieve level")
+	}
+
+	return models.CaseLevel(level), nil
+}
+
+func GetCaseDetails(caseNumber string) (*models.CaseDetailsResponse, error) {
+	query := `
+	SELECT 
+		c.case_number, c.case_name, c.description, c.area, c.city,
+		c.created_by, c.created_at, c.case_type, c.level, c.status,
+		(SELECT COUNT(*) FROM reports WHERE case_number = c.case_number) AS reported_by,
+		(SELECT COUNT(*) FROM case_assignees WHERE case_number = c.case_number) AS num_assignees,
+		(SELECT COUNT(*) FROM evidence WHERE case_number = c.case_number AND deleted = FALSE) AS num_evidences,
+		(SELECT COUNT(*) FROM persons WHERE case_number = c.case_number AND type = 'suspect') AS num_suspects,
+		(SELECT COUNT(*) FROM persons WHERE case_number = c.case_number AND type = 'victim') AS num_victims,
+		(SELECT COUNT(*) FROM persons WHERE case_number = c.case_number AND type = 'witness') AS num_witnesses
+	FROM cases c
+	WHERE c.case_number = $1;
+	`
+
+	var result models.CaseDetailsResponse
+	err := database.DB.QueryRow(context.Background(), query, caseNumber).Scan(&result.CaseNumber,
+		&result.CaseName, &result.Description, &result.Area, &result.City, &result.CreatedBy,
+		&result.CreatedAt, &result.CaseType, &result.Level, &result.Status, &result.ReportedBy, &result.NumAssignees,
+		&result.NumEvidences, &result.NumSuspects, &result.NumVictims, &result.NumWitnesses)
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

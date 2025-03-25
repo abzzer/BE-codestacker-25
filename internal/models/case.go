@@ -57,6 +57,11 @@ type CaseUpdate struct {
 	Status      *CaseStatus `json:"status"`
 }
 
+type CaseStatusUpdate struct {
+	CaseNumber string     `json:"-"`
+	Status     CaseStatus `json:"status"`
+}
+
 type Person struct {
 	ID         int        `json:"id"`
 	CaseNumber string     `json:"case_number"`
@@ -74,4 +79,23 @@ type PersonRequest struct {
 	Age        int        `json:"age"`
 	Gender     Gender     `json:"gender"`
 	Role       string     `json:"role"`
+}
+
+type CaseDetailsResponse struct {
+	CaseNumber   string     `json:"case_number"`
+	CaseName     string     `json:"case_name"`
+	Description  string     `json:"description"`
+	Area         string     `json:"area"`
+	City         string     `json:"city"`
+	CreatedBy    string     `json:"created_by"`
+	CreatedAt    string     `json:"created_at"`
+	CaseType     string     `json:"case_type"`
+	Level        CaseLevel  `json:"level"`
+	Status       CaseStatus `json:"status"`
+	ReportedBy   int        `json:"reported_by"`
+	NumAssignees int        `json:"num_assignees"`
+	NumEvidences int        `json:"num_evidences"`
+	NumSuspects  int        `json:"num_suspects"`
+	NumVictims   int        `json:"num_victims"`
+	NumWitnesses int        `json:"num_witnesses"`
 }
