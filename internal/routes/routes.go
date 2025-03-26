@@ -1,41 +1,39 @@
 package routes
 
 import (
+	"github.com/abzzer/BE-codestacker-25/internal/handlers"
 	"github.com/abzzer/BE-codestacker-25/internal/middleware"
-	"github.com/abzzer/BE-codestacker-25/internal/repository"
 	"github.com/gofiber/fiber/v2"
 )
 
-// RegisterRoutes sets up all the API routes
 func RegisterRoutes(app *fiber.App) {
-	// Public Route
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("We have a working API with databases and RBAC!!")
 	})
 
-	// Register a user
-	app.Post("/register", func(c *fiber.Ctx) error {
-		type Request struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-			Role     string `json:"role"`
-		}
+	app.Post("/login", handlers.LoginHandler)
+	app.Post("/logout", handlers.LogoutHandler)
+	app.Post("/submit-report", handlers.SubmitCrimeReportHandler)
+	app.Post("/add-case", middleware.JWTMiddleware("admin", "investigator"), handlers.CreateCaseHandler)
 
-		var req Request
-		if err := c.BodyParser(&req); err != nil {
-			return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
-		}
+	app.Patch("/update-case-status/:caseid", middleware.JWTMiddleware("officer"), handlers.UpdateCaseStatusHandler)
 
-		user, err := repository.CreateUser(req.Username, req.Password, req.Role)
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "Could not create user"})
-		}
+	adminRoutes := app.Group("/admin", middleware.JWTMiddleware("admin"))
+	adminRoutes.Post("/create-user", handlers.CreateUserHandler)
+	adminRoutes.Patch("/update-user/:id", handlers.UpdateUserHandler)
+	adminRoutes.Delete("/delete-user/:id", handlers.DeleteUserHandler)
 
-		return c.JSON(user)
-	})
+	evidence := app.Group("/add-evidence", middleware.JWTMiddleware("admin", "investigator", "officer"))
+	evidence.Post("/text", handlers.AddTextEvidenceHandler)
+	evidence.Post("/image", handlers.AddImageEvidenceHandler)
 
-	// Protected Route (Admin Only)
-	app.Get("/admin", middleware.AuthMiddleware("admin"), func(c *fiber.Ctx) error {
-		return c.SendString("Welcome Admin!")
-	})
+	caseRoutes := app.Group("/update-case", middleware.JWTMiddleware("admin", "investigator"))
+	caseRoutes.Post("/:caseid/add-person", handlers.AddPersonHandler)
+	caseRoutes.Put("/:caseid", handlers.UpdateCaseHandler)
+
+	viewCase := app.Group("/case", middleware.JWTMiddleware("admin", "investigator", "officer"))
+	viewCase.Get("/:caseid", handlers.GetCaseDetailsHandler)
+
+	app.Get("/evidence/:evidenceid", middleware.JWTMiddleware("admin", "investigator", "officer"), handlers.GetEvidenceHandler)
+
 }

@@ -103,18 +103,18 @@ func UpdateUser(input models.UpdateUser) error {
 	return err
 }
 
-func GetPasswordAndRoleByUserID(id string) (string, string, error) {
+func GetPasswordRoleClearanceByUserID(id string) (string, string, string, error) {
 	query := `
-		SELECT password, role
+		SELECT password, role, clearance_level
 		FROM users
 		WHERE id = $1 AND deleted = FALSE;
 	`
 
-	var password, role string
-	err := database.DB.QueryRow(context.Background(), query, id).Scan(&password, &role)
+	var password, role, clearance string
+	err := database.DB.QueryRow(context.Background(), query, id).Scan(&password, &role, &clearance)
 	if err != nil {
-		return "", "", errors.New("invalid user ID or user is deleted")
+		return "", "", "", errors.New("invalid user ID or user is deleted")
 	}
 
-	return password, role, nil
+	return password, role, clearance, nil
 }
