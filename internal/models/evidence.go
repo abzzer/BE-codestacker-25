@@ -15,3 +15,10 @@ type EvidenceTextRequest struct {
 	Remarks    string       `json:"remarks"`
 	Size       string       `json:"size"`
 }
+
+type EvidenceFromID struct {
+	Type    EvidenceType `json:"type"`
+	Remarks string       `json:"remarks"`
+	Content string       `json:"content"`
+	Size    string       `json:"size"`
+}

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/abzzer/BE-codestacker-25/internal/models"
 	"github.com/abzzer/BE-codestacker-25/internal/repository"
 	"github.com/gofiber/fiber/v2"
@@ -70,5 +72,36 @@ func AddImageEvidenceHandler(c *fiber.Ctx) error {
 		"message":     "Image evidence added successfully",
 		"minio_url":   url,
 		"contentSize": size,
+	})
+}
+
+func GetEvidenceHandler(c *fiber.Ctx) error {
+	evidenceIDParam := c.Params("evidenceid")
+	evidenceID, err := strconv.Atoi(evidenceIDParam)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid evidence ID",
+		})
+	}
+
+	evidence, err := repository.GetEvidenceByID(evidenceID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Evidence not found",
+		})
+	}
+
+	if evidence.Type == "image" {
+		return c.JSON(fiber.Map{
+			"type":    "image",
+			"remarks": evidence.Remarks,
+			"size":    evidence.Size,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"type":    "text",
+		"remarks": evidence.Remarks,
+		"content": evidence.Content,
 	})
 }

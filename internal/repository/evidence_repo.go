@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
@@ -50,4 +51,20 @@ func UploadImageToMinio(file *multipart.FileHeader) (string, string, error) {
 		os.Getenv("MINIO_ENDPOINT"), bucket, objectName)
 
 	return url, fmt.Sprintf("%d bytes", fileSize), nil
+}
+
+func GetEvidenceByID(id int) (*models.EvidenceFromID, error) {
+	query := `
+		SELECT type, remarks, content, size
+		FROM evidence
+		WHERE id = $1 AND deleted = FALSE;
+	`
+
+	var ev models.EvidenceFromID
+	err := database.DB.QueryRow(context.Background(), query, id).Scan(&ev.Type, &ev.Remarks, &ev.Content, &ev.Size)
+	if err != nil {
+		return nil, errors.New("evidence not found")
+	}
+
+	return &ev, nil
 }
