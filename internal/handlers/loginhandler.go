@@ -16,7 +16,7 @@ func LoginHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	passwordHash, role, err := repository.GetPasswordAndRoleByUserID(req.UserID)
+	passwordHash, role, clearance, err := repository.GetPasswordRoleClearanceByUserID(req.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "the repo not work",
@@ -29,7 +29,7 @@ func LoginHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	token, err := auth.GenerateJWT(req.UserID, role)
+	token, err := auth.GenerateJWT(req.UserID, role, clearance)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Could not generate token",
