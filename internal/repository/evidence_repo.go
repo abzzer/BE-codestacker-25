@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/abzzer/BE-codestacker-25/internal/database"
 	"github.com/abzzer/BE-codestacker-25/internal/models"
@@ -20,37 +22,35 @@ func AddTextEvidence(e models.EvidenceTextRequest) error {
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 	_, err := database.DB.Exec(context.Background(), query,
-		e.CaseNumber, e.OfficerID, e.Type, e.Content, e.Size, e.Remarks,
-	)
+		e.CaseNumber, e.OfficerID, e.Type, e.Content, e.Size, e.Remarks)
 	return err
 }
 
-func UploadImageToMinio(file *multipart.FileHeader) (string, string, error) {
-	bucket := "evidence-bucket"
+func UploadImageToMinio(file *multipart.FileHeader) (string, string, string, error) {
 	fileExt := filepath.Ext(file.Filename)
 	fileID := uuid.New().String()
 	objectName := fmt.Sprintf("evidence/%s%s", fileID, fileExt)
 
 	src, err := file.Open()
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	defer src.Close()
 
 	contentType := file.Header.Get("Content-Type")
 	fileSize := file.Size
 
-	_, err = database.MinioClient.PutObject(context.Background(), bucket, objectName, src, fileSize, minio.PutObjectOptions{
+	_, err = database.MinioClient.PutObject(context.Background(), "evidence-bucket", objectName, src, fileSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	url := fmt.Sprintf("http://%s/%s/%s",
-		os.Getenv("MINIO_ENDPOINT"), bucket, objectName)
+		os.Getenv("MINIO_ENDPOINT"), "evidence-bucket", objectName)
 
-	return url, fmt.Sprintf("%d bytes", fileSize), nil
+	return objectName, url, fmt.Sprintf("%d bytes", fileSize), nil
 }
 
 func GetEvidenceByID(id int) (*models.EvidenceFromID, error) {
@@ -67,4 +67,42 @@ func GetEvidenceByID(id int) (*models.EvidenceFromID, error) {
 	}
 
 	return &ev, nil
+}
+
+func GetImageByID(id int) (io.Reader, string, error) {
+	query := `
+		SELECT type, content
+		FROM evidence
+		WHERE id = $1 AND deleted = FALSE;
+	`
+
+	var ev models.ImageFromID
+	err := database.DB.QueryRow(context.Background(), query, id).Scan(&ev.Type, &ev.Content)
+	if err != nil {
+		return nil, "", errors.New("evidence not found")
+	}
+
+	if ev.Type != models.EvidenceImage {
+		return nil, "", errors.New("evidence is not an image")
+	}
+	object, err := database.MinioClient.GetObject(
+		context.Background(),
+		"evidence-bucket",
+		ev.Content,
+		minio.GetObjectOptions{},
+	)
+	if err != nil {
+		return nil, "", errors.New("failed to access image in MinIO")
+	}
+
+	info, err := object.Stat()
+	if err != nil {
+		return nil, "", errors.New("could not retrieve object info")
+	}
+
+	if !strings.HasPrefix(info.ContentType, "image/") {
+		return nil, "", errors.New("file in MinIO is not an image")
+	}
+
+	return object, info.ContentType, nil
 }

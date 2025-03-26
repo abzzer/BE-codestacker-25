@@ -50,7 +50,7 @@ func AddImageEvidenceHandler(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Image file is required"})
 	}
 
-	url, size, err := repository.UploadImageToMinio(file)
+	objectName, url, size, err := repository.UploadImageToMinio(file)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "MinIO upload failed"})
 	}
@@ -59,7 +59,7 @@ func AddImageEvidenceHandler(c *fiber.Ctx) error {
 		CaseNumber: caseNumber,
 		OfficerID:  officerID,
 		Type:       models.EvidenceImage,
-		Content:    url,
+		Content:    objectName,
 		Size:       size,
 		Remarks:    remarks,
 	}
@@ -104,4 +104,20 @@ func GetEvidenceHandler(c *fiber.Ctx) error {
 		"remarks": evidence.Remarks,
 		"content": evidence.Content,
 	})
+}
+
+func GetImageEvidenceHandler(c *fiber.Ctx) error {
+	evidenceIDStr := c.Params("evidenceid")
+	evidenceID, err := strconv.Atoi(evidenceIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid evidence ID"})
+	}
+
+	reader, currType, err := repository.GetImageByID(evidenceID)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	c.Set("Content-Type", currType)
+	return c.SendStream(reader)
 }
