@@ -123,3 +123,30 @@ func UpdateEvidenceContent(id int, content, size string) error {
 	_, err := database.DB.Exec(context.Background(), query, content, size, id)
 	return err
 }
+
+func SoftDeleteEvidence(evidenceID int, userID string) error {
+	query := `
+		UPDATE evidence
+		SET deleted = TRUE
+		WHERE id = $1 AND deleted = FALSE
+		RETURNING id;
+	`
+
+	var id int
+	err := database.DB.QueryRow(context.Background(), query, evidenceID).Scan(&id)
+	if err != nil {
+		return errors.New("failed to soft delete or evidence already deleted")
+	}
+
+	auditQuery := `
+		INSERT INTO audit_logs (action, evidence_id, user_id)
+		VALUES ($1, $2, $3)
+	`
+
+	_, err = database.DB.Exec(context.Background(), auditQuery, models.AuditSoftDeleted, id, userID)
+	if err != nil {
+		return errors.New("soft deleted but failed to log audit")
+	}
+
+	return nil
+}
