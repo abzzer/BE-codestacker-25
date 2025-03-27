@@ -16,14 +16,15 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
-func AddTextEvidence(e models.EvidenceTextRequest) error {
+func AddTextEvidence(e models.EvidenceTextRequest) (int, error) {
 	query := `
 		INSERT INTO evidence (case_number, officer_id, type, content, size, remarks)
 		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id;
 	`
-	_, err := database.DB.Exec(context.Background(), query,
-		e.CaseNumber, e.OfficerID, e.Type, e.Content, e.Size, e.Remarks)
-	return err
+	var newID int
+	err := database.DB.QueryRow(context.Background(), query, e.CaseNumber, e.OfficerID, e.Type, e.Content, e.Size, e.Remarks).Scan(&newID)
+	return newID, err
 }
 
 func UploadImageToMinio(file *multipart.FileHeader) (string, string, string, error) {
@@ -105,4 +106,20 @@ func GetImageByID(id int) (io.Reader, string, error) {
 	}
 
 	return object, info.ContentType, nil
+}
+
+func GetEvidenceTypeByID(id int) (models.EvidenceType, error) {
+	var evType models.EvidenceType
+	query := `SELECT type FROM evidence WHERE id = $1 AND deleted = FALSE;`
+	err := database.DB.QueryRow(context.Background(), query, id).Scan(&evType)
+	if err != nil {
+		return "", errors.New("evidence not found")
+	}
+	return evType, nil
+}
+
+func UpdateEvidenceContent(id int, content, size string) error {
+	query := `UPDATE evidence SET content = $1, size = $2 WHERE id = $3 AND deleted = FALSE;`
+	_, err := database.DB.Exec(context.Background(), query, content, size, id)
+	return err
 }

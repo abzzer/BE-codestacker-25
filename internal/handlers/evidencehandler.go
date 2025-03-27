@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/abzzer/BE-codestacker-25/internal/models"
 	"github.com/abzzer/BE-codestacker-25/internal/repository"
@@ -25,11 +26,15 @@ func AddTextEvidenceHandler(c *fiber.Ctx) error {
 
 	req.OfficerID = officerID
 
-	if err := repository.AddTextEvidence(req); err != nil {
+	evidenceID, err := repository.AddTextEvidence(req)
+	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not add text evidence"})
 	}
 
-	return c.JSON(fiber.Map{"message": "Text evidence added"})
+	return c.JSON(fiber.Map{
+		"message":     "Text evidence added",
+		"evidence_id": evidenceID,
+	})
 }
 
 func AddImageEvidenceHandler(c *fiber.Ctx) error {
@@ -64,12 +69,15 @@ func AddImageEvidenceHandler(c *fiber.Ctx) error {
 		Remarks:    remarks,
 	}
 
-	if err := repository.AddTextEvidence(e); err != nil {
+	evidenceID, err := repository.AddTextEvidence(e)
+
+	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not insert image evidence"})
 	}
 
 	return c.JSON(fiber.Map{
 		"message":     "Image evidence added successfully",
+		"evidence_id": evidenceID,
 		"minio_url":   url,
 		"contentSize": size,
 	})
@@ -120,4 +128,53 @@ func GetImageEvidenceHandler(c *fiber.Ctx) error {
 
 	c.Set("Content-Type", currType)
 	return c.SendStream(reader)
+}
+
+func UpdateEvidence(c *fiber.Ctx) error {
+	evidenceIDStr := c.Params("evidenceid")
+	evidenceID, err := strconv.Atoi(evidenceIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid evidence ID"})
+	}
+
+	currType, err := repository.GetEvidenceTypeByID(evidenceID)
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Evidence not found"})
+	}
+
+	if currType == models.EvidenceText {
+		var payload struct {
+			Content string `json:"content"`
+		}
+		if err := c.BodyParser(&payload); err != nil || strings.TrimSpace(payload.Content) == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid or empty text content"})
+		}
+
+		err = repository.UpdateEvidenceContent(evidenceID, payload.Content, "")
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to update text evidence"})
+		}
+
+		return c.JSON(fiber.Map{"message": "Text evidence updated successfully"})
+
+	} else if currType == models.EvidenceImage {
+		file, err := c.FormFile("image")
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Image file required for update"})
+		}
+
+		objectName, _, size, err := repository.UploadImageToMinio(file)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Image upload to MinIO failed"})
+		}
+
+		err = repository.UpdateEvidenceContent(evidenceID, objectName, size)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to update image evidence"})
+		}
+
+		return c.JSON(fiber.Map{"message": "Image evidence updated successfully"})
+	}
+
+	return c.Status(400).JSON(fiber.Map{"error": "Unsupported evidence type"})
 }
