@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -44,21 +45,13 @@ func JWTMiddleware(allowedRoles ...string) fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid role claim"})
 		}
 
-		// Check if the role is in allowedRoles
-		allowed := false
-		for _, r := range allowedRoles {
-			if role == r {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
+		if !slices.Contains(allowedRoles, role) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
 		}
 
 		c.Locals("user_id", claims["user_id"])
 		c.Locals("role", claims["role"])
+		c.Locals("clearance", claims["clearance_level"])
 
 		return c.Next()
 	}
