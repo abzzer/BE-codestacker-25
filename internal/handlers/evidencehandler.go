@@ -178,3 +178,13 @@ func UpdateEvidence(c *fiber.Ctx) error {
 
 	return c.Status(400).JSON(fiber.Map{"error": "Unsupported evidence type"})
 }
+
+func GetTopWordsInTextEvidence(c *fiber.Ctx) error {
+	words, err := repository.GetTopTextEvidenceWords()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to analyse text evidence"})
+	}
+	return c.JSON(fiber.Map{
+		"top_words": words,
+	})
+}
