@@ -8,6 +8,8 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/abzzer/BE-codestacker-25/internal/database"
@@ -118,35 +120,82 @@ func GetEvidenceTypeByID(id int) (models.EvidenceType, error) {
 	return evType, nil
 }
 
-func UpdateEvidenceContent(id int, content, size string) error {
-	query := `UPDATE evidence SET content = $1, size = $2 WHERE id = $3 AND deleted = FALSE;`
-	_, err := database.DB.Exec(context.Background(), query, content, size, id)
-	return err
+func GetTopTextEvidenceWords() ([]string, error) {
+	query := `SELECT content FROM evidence WHERE type = 'text' AND deleted = FALSE`
+	rows, err := database.DB.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var texts []string
+	for rows.Next() {
+		var content string
+		if err := rows.Scan(&content); err == nil {
+			texts = append(texts, content)
+		}
+	}
+
+	stopWords := map[string]struct{}{
+		"the": {}, "and": {}, "to": {}, "a": {}, "of": {}, "in": {}, "on": {}, "with": {},
+		"at": {}, "by": {}, "for": {}, "an": {}, "was": {}, "is": {}, "were": {}, "had": {},
+		"be": {}, "it": {}, "that": {}, "this": {}, "as": {}, "from": {}, "but": {}, "or": {},
+		"are": {}, "before": {}, "after": {}, "same": {},
+	}
+
+	wordCount := make(map[string]int)
+	for _, text := range texts {
+		words := regexp.MustCompile(`\b[a-zA-Z]+\b`).FindAllString(strings.ToLower(text), -1)
+		for _, word := range words {
+			if _, skip := stopWords[word]; !skip {
+				wordCount[word]++
+			}
+		}
+	}
+
+	type wordFreq struct {
+		Word  string
+		Count int
+	}
+	var sorted []wordFreq
+	for w, c := range wordCount {
+		sorted = append(sorted, wordFreq{w, c})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Count > sorted[j].Count
+	})
+
+	top := []string{}
+	for i := 0; i < len(sorted) && i < 10; i++ {
+		top = append(top, sorted[i].Word)
+	}
+	return top, nil
 }
 
-func SoftDeleteEvidence(evidenceID int, userID string) error {
+func ExtractURLsFromCase(caseNumber string) ([]string, error) {
 	query := `
-		UPDATE evidence
-		SET deleted = TRUE
-		WHERE id = $1 AND deleted = FALSE
-		RETURNING id;
+		SELECT content FROM evidence
+		WHERE case_number = $1 AND type = 'text' AND deleted = FALSE
 	`
 
-	var id int
-	err := database.DB.QueryRow(context.Background(), query, evidenceID).Scan(&id)
+	rows, err := database.DB.Query(context.Background(), query, caseNumber)
 	if err != nil {
-		return errors.New("failed to soft delete or evidence already deleted")
+		return nil, err
+	}
+	defer rows.Close()
+
+	var urls []string
+	regex := regexp.MustCompile(`https?://[^\s]+`)
+
+	for rows.Next() {
+		var content string
+		if err := rows.Scan(&content); err != nil {
+			continue
+		}
+
+		matches := regex.FindAllString(content, -1)
+		urls = append(urls, matches...)
 	}
 
-	auditQuery := `
-		INSERT INTO audit_logs (action, evidence_id, user_id)
-		VALUES ($1, $2, $3)
-	`
-
-	_, err = database.DB.Exec(context.Background(), auditQuery, models.AuditSoftDeleted, id, userID)
-	if err != nil {
-		return errors.New("soft deleted but failed to log audit")
-	}
-
-	return nil
+	return urls, nil
 }

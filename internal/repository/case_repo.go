@@ -166,3 +166,44 @@ func GetCaseDetails(caseNumber string) (*models.CaseDetailsResponse, error) {
 	}
 	return &result, nil
 }
+
+func AssignUserToCase(targetUserID, caseNumber string) error {
+	ctx := context.Background()
+
+	var userRole string
+	var userClearance string
+	var caseClearance string
+
+	err := database.DB.QueryRow(ctx, `
+		SELECT role, clearance_level FROM users
+		WHERE id = $1 AND deleted = FALSE
+	`, targetUserID).Scan(&userRole, &userClearance)
+	if err != nil {
+		return errors.New("target user not found")
+	}
+
+	err = database.DB.QueryRow(ctx, `
+		SELECT level FROM cases
+		WHERE case_number = $1
+	`, caseNumber).Scan(&caseClearance)
+	if err != nil {
+		return errors.New("case not found")
+	}
+
+	if userRole == "officer" {
+		if !IsClearanceSufficient(models.CaseLevel(userClearance), models.CaseLevel(caseClearance)) {
+			return errors.New("officer's clearance level is insufficient for this case")
+		}
+	}
+
+	_, err = database.DB.Exec(ctx, `
+		INSERT INTO case_assignees (case_number, user_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, caseNumber, targetUserID)
+	if err != nil {
+		return errors.New("failed to assign user to case")
+	}
+
+	return nil
+}
