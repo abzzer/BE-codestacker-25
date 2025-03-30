@@ -188,3 +188,17 @@ func GetTopWordsInTextEvidence(c *fiber.Ctx) error {
 		"top_words": words,
 	})
 }
+
+func GetCaseURLs(c *fiber.Ctx) error {
+	caseID := c.Params("caseid")
+	if caseID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Missing case ID"})
+	}
+
+	links, err := repository.ExtractURLsFromCase(caseID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to extract URLs"})
+	}
+
+	return c.JSON(fiber.Map{"urls": links})
+}

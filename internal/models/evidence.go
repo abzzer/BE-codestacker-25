@@ -27,3 +27,7 @@ type ImageFromID struct {
 	Type    EvidenceType `json:"type"`
 	Content string       `json:"content"`
 }
+
+type HardDeleteConfirmation struct {
+	Confirm string `json:"confirm"`
+}
