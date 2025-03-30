@@ -137,8 +137,8 @@ INSERT INTO users (id, name, password, role, clearance_level) VALUES ('A001', 'A
 ('A104', 'Auditor Alice Green', '$2a$10$J14ZMfR26KYUczdLamBmpOLaEMp8nibjGITnY.AZpkmz6k6h7hh/q', 'auditor', 'medium');
 
 
-INSERT INTO cases (case_number, case_name, description, area, city, created_by, created_at, case_type, level) VALUES 
-('C12345', 'Theft Investigation', 'Investigation of a reported theft at a local store.', 'Downtown', 'New York', 'A001', '2025-03-10T14:30:00Z', 'criminal', 'high');
+INSERT INTO cases (case_number, case_name, description, area, city, created_by, created_at, case_type, status, level) VALUES 
+('C12345', 'Theft Investigation', 'Investigation of a reported theft at a local store.', 'Downtown', 'New York', 'A001', '2025-03-10T14:30:00Z', 'criminal', 'ongoing', 'high');
 
 INSERT INTO case_assignees (case_number, user_id) VALUES ('C12345', 'A101'), ('C12345', 'A102'), ('C12345', 'A104');
 

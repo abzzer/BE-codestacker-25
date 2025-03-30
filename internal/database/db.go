@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -21,11 +22,15 @@ func ConnectPostgres() {
 		os.Getenv("DB_NAME"),
 	)
 
-	estConnection, err := pgx.Connect(context.Background(), currDSN)
-	if err != nil {
-		log.Fatalf("Couldn't connect to your DB: %v", err)
+	var err error
+	for attempts := 1; attempts <= 10; attempts++ {
+		DB, err = pgx.Connect(context.Background(), currDSN)
+		if err == nil {
+			log.Println("Connection to the DB was successful.")
+			return
+		}
+		time.Sleep(2 * time.Second)
 	}
 
-	log.Println("Connection to the db was succcessful")
-	DB = estConnection
+	log.Fatalf("Attempted to connect - but failed: %v", err)
 }
