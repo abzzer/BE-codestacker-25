@@ -157,3 +157,32 @@ func GetCaseDetailsHandler(c *fiber.Ctx) error {
 
 	return c.JSON(details)
 }
+
+func AddOfficerToCaseHandler(c *fiber.Ctx) error {
+	caseID := c.Params("caseid")
+	if caseID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Missing case ID in URL",
+		})
+	}
+
+	var req struct {
+		UserID string `json:"user_id"`
+	}
+
+	if err := c.BodyParser(&req); err != nil || req.UserID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "User ID is required in the JSON body",
+		})
+	}
+
+	if err := repository.AssignUserToCase(req.UserID, caseID); err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "User successfully assigned to case",
+	})
+}

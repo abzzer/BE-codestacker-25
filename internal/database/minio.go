@@ -25,7 +25,7 @@ func ConnectMinIO() {
 		log.Fatalf("Failed to connect to MinIO: %v", err)
 	}
 
-	MinioClient = client // Public var to interact with buckets
+	MinioClient = client
 	log.Println("Connection to MinIO successful")
 
 	ctx := context.Background()
