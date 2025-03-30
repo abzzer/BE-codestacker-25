@@ -15,6 +15,7 @@ func RegisterRoutes(app *fiber.App) {
 	app.Post("/logout", handlers.LogoutHandler)
 	app.Post("/submit-report", handlers.SubmitCrimeReportHandler)
 	app.Post("/add-case", middleware.JWTMiddleware("admin", "investigator"), handlers.CreateCaseHandler)
+	app.Get("/check-report/:reportID", handlers.CheckReportStatus)
 
 	app.Patch("/update-case-status/:caseid", middleware.JWTMiddleware("officer"), handlers.UpdateCaseStatusHandler)
 
@@ -30,10 +31,13 @@ func RegisterRoutes(app *fiber.App) {
 
 	caseRoutes := app.Group("/update-case", middleware.JWTMiddleware("admin", "investigator"))
 	caseRoutes.Post("/:caseid/add-person", handlers.AddPersonHandler)
+	caseRoutes.Post("/:caseid/add-person", handlers.AddOfficerToCaseHandler)
+
 	caseRoutes.Put("/:caseid", handlers.UpdateCaseHandler)
 
 	viewCase := app.Group("/case", middleware.JWTMiddleware("admin", "investigator", "officer"))
 	viewCase.Get("/:caseid", handlers.GetCaseDetailsHandler)
+	viewCase.Get("/pdf/:caseid", handlers.GenerateCasePDFHandler)
 
 	viewEvidence := app.Group("/evidence", middleware.JWTMiddleware("admin", "investigator", "officer"))
 	viewEvidence.Get("/top-ten", handlers.GetTopWordsInTextEvidence)
@@ -47,6 +51,10 @@ func RegisterRoutes(app *fiber.App) {
 	viewEvidence.Post("/hard-delete/:evidenceid", middleware.JWTMiddleware("admin", "investigator"), handlers.HardDeleteEvidence)
 	viewEvidence.Patch("/hard-delete/:evidenceid", middleware.JWTMiddleware("admin", "investigator"), handlers.HardDeleteEvidence)
 	viewEvidence.Delete("/hard-delete/:evidenceid", middleware.JWTMiddleware("admin", "investigator"), handlers.HardDeleteEvidence)
+
+	reports := app.Group("/reports", middleware.JWTMiddleware("admin", "investigator", "officer"))
+	reports.Get("/all", handlers.GetAllReports)
+	reports.Post("/case/:reportID", handlers.LinkReportToCase)
 
 	// Long pooling
 	viewEvidence.Get("/hard-delete-status/:evidenceid", middleware.JWTMiddleware("admin"), handlers.LongPollDeleteStatus)
