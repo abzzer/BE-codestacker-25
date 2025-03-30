@@ -36,6 +36,7 @@ func RegisterRoutes(app *fiber.App) {
 
 	viewEvidence := app.Group("/evidence", middleware.JWTMiddleware("admin", "investigator", "officer"))
 	viewEvidence.Get("/top-ten", handlers.GetTopWordsInTextEvidence)
+	viewEvidence.Get("/get-urls/:caseid", handlers.GetCaseURLs)
 	viewEvidence.Get("/details/:evidenceid", handlers.GetEvidenceHandler)
 	viewEvidence.Get("/get-image/:evidenceid", handlers.GetImageEvidenceHandler)
 	viewEvidence.Get("/update/:evidenceid", middleware.JWTMiddleware("admin", "investigator"), handlers.UpdateEvidence)
