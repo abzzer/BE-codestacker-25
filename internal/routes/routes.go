@@ -22,6 +22,7 @@ func RegisterRoutes(app *fiber.App) {
 	adminRoutes.Post("/create-user", handlers.CreateUserHandler)
 	adminRoutes.Patch("/update-user/:id", handlers.UpdateUserHandler)
 	adminRoutes.Delete("/delete-user/:id", handlers.DeleteUserHandler)
+	adminRoutes.Get("/audit-log", handlers.GetAuditLogs)
 
 	addEvidence := app.Group("/add-evidence", middleware.JWTMiddleware("admin", "investigator", "officer"))
 	addEvidence.Post("/text", handlers.AddTextEvidenceHandler)
