@@ -124,9 +124,9 @@ CREATE TABLE reports (
     name VARCHAR(100) NOT NULL,
     role VARCHAR(100) NOT NULL DEFAULT 'Citizen',
     case_number TEXT REFERENCES cases(case_number),
-    description TEXT,
-    area TEXT,
-    city TEXT
+    description TEXT NOT NULL,
+    area TEXT NOT NULL,
+    city TEXT NOT NULL
 );
 
 --- Populate the Tables ------------------------
