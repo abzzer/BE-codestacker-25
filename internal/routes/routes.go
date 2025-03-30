@@ -17,7 +17,7 @@ func RegisterRoutes(app *fiber.App) {
 	app.Post("/add-case", middleware.JWTMiddleware("admin", "investigator"), handlers.CreateCaseHandler)
 	app.Get("/check-report/:reportID", handlers.CheckReportStatus)
 
-	app.Patch("/update-case-status/:caseid", middleware.JWTMiddleware("officer"), handlers.UpdateCaseStatusHandler)
+	app.Patch("/update-case-status/:caseid", middleware.JWTMiddleware("admin", "investigator", "officer"), handlers.UpdateCaseStatusHandler)
 
 	adminRoutes := app.Group("/admin", middleware.JWTMiddleware("admin"))
 	adminRoutes.Post("/create-user", handlers.CreateUserHandler)
@@ -31,7 +31,7 @@ func RegisterRoutes(app *fiber.App) {
 
 	caseRoutes := app.Group("/update-case", middleware.JWTMiddleware("admin", "investigator"))
 	caseRoutes.Post("/:caseid/add-person", handlers.AddPersonHandler)
-	caseRoutes.Post("/:caseid/add-person", handlers.AddOfficerToCaseHandler)
+	caseRoutes.Post("/:caseid/add-officer", handlers.AddOfficerToCaseHandler)
 
 	caseRoutes.Put("/:caseid", handlers.UpdateCaseHandler)
 

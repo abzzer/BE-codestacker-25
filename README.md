@@ -160,6 +160,26 @@ Authorization: Bearer <your_token>
   "clearance": "medium"
 }
 ```
+---
+### Logout
+> This endpoint simulates logout. It does not invalidate the token server-side.  
+
+**POST** `http://localhost:8080/logout`
+
+**Headers:**
+
+```
+Authorization: Bearer <your_token>
+```
+
+**Response:**
+
+```json
+{
+  "message": "Successfully logged out. Please discard your token on the client side."
+}
+```
+
 
 
 ---
@@ -171,7 +191,72 @@ Authorization: Bearer <your_token>
 - Update existing case
 - Link case to crime reports
 
-More info soon
+--- 
+
+### Submit Crime Report (Public)
+
+**POST** `http://localhost:8080/submit-report`
+
+No authentication required.
+
+**Body (raw → JSON):**
+
+```json
+{
+  "email": "jane.doe@example.com",
+  "civil_id": "1234567890",
+  "name": "Jane Doe",
+  "description": "Suspicious activity noticed near the alley.",
+  "area": "Downtown",
+  "city": "Muscat"
+}
+```
+
+**Response:**
+
+```json
+{
+  "message": "Report submitted successfully. Please keep your report ID to check status.",
+  "report_id": 2
+}
+```
+
+---
+
+### Create a New Case (Investigator/Admin)
+
+**POST** `http://localhost:8080/add-case`
+
+Requires a valid token from a user with role `investigator` or `admin`.
+
+**Headers:**
+
+```
+Authorization: Bearer <your_token>
+```
+
+**Body (raw → JSON):**
+
+```json
+{
+  "case_name": "Alley Incident Investigation",
+  "description": "Initial investigation into the alley disturbance",
+  "area": "Downtown",
+  "city": "Riyadh",
+  "level": "medium"
+}
+```
+
+**Response:**
+
+```json
+{
+  "case_number": "C10000",
+  "message": "Case was created successfully here is your case number. No one is assigned this case yet."
+}
+```
+---
+
 
 ---
 
