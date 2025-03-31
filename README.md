@@ -257,6 +257,153 @@ Authorization: Bearer <your_token>
 ```
 ---
 
+## Update Case
+
+### ✏️ Update General Case Info
+
+**PUT** `http://localhost:8080/update-case/C12345`
+
+> Roles allowed: `admin`, `investigator`  
+> Requires token
+
+**Headers:**
+
+```
+Authorization: Bearer <your_token>
+```
+
+**Body (raw → JSON):**
+
+```json
+{
+  "case_name": "C12345 Renamed",
+  "description": "Updated case details for testing",
+  "area": "Al Khobar",
+  "city": "Dammam",
+  "level": "high"
+}
+```
+
+**Expected Response:**
+
+```json
+{
+  "message": "Case updated successfully"
+}
+```
+
+---
+
+### 🧍 Add Person (Victim / Suspect / Witness)
+
+**POST** `http://localhost:8080/update-case/C12345/add-person`
+
+> Roles allowed: `admin`, `investigator`  
+> Requires token
+
+**Body (raw → JSON):**
+
+```json
+{
+  "type": "victim",
+  "name": "Fatima Al-Hassan",
+  "age": 32,
+  "gender": "female",
+  "role": "Eyewitness"
+}
+```
+
+**Expected Response:**
+
+```json
+{
+  "message": "Person added successfully",
+  "person_id": 1
+}
+```
+
+---
+
+
+### Add Officer or Investigator to Case
+
+**POST** `http://localhost:8080/update-case/C12345/add-officer`
+
+> Roles allowed: `admin`, `investigator`  
+> Requires token
+
+**Headers:**
+
+```
+Authorization: Bearer <your_token>
+```
+
+#### Payload (raw → JSON):
+
+```json
+{
+  "user_id": "A102"
+}
+```
+> `A102` is an **officer** with `medium` clearance.  
+> Case `C12345` has `high` level → Officer cannot be assigned.
+
+**Expected Response:**
+
+```json
+{
+  "error": "officer's clearance level is insufficient for this case"
+}
+```
+
+---
+
+#### Example with Investigator (Can Always Be Assigned)
+
+```json
+{
+  "user_id": "A101"
+}
+```
+
+> `A101` is an investigator → clearance check skipped.
+
+**Expected Response:**
+
+```json
+{
+  "message": "Officer assigned successfully"
+}
+```
+
+### Update Case Status Only
+
+**PATCH** `http://localhost:8080/update-case/C12345/status`
+
+> Roles allowed: `admin`, `investigator`, `officer`  
+> Requires token
+
+**Body (raw → JSON):**
+
+```json
+{
+  "status": "ongoing"
+}
+```
+
+**Expected Response:**
+
+```json
+{
+  "message": "Case status updated successfully"
+}
+```
+---
+
+
+
+
+
 
 ---
 
