@@ -179,7 +179,62 @@ Authorization: Bearer <your_token>
   "message": "Successfully logged out. Please discard your token on the client side."
 }
 ```
+---
 
+### Update Existing User
+
+**PATCH** `http://localhost:8080/admin/update-user/A104`
+
+Update user details such as name, password, role, or clearance level.
+
+**Headers:**
+
+```
+Authorization: Bearer <admin_token>
+```
+
+#### Payload (raw → JSON):
+
+```json
+{
+  "password": "newpass123",
+  "role": "investigator",
+  "clearance_level": "medium"
+}
+```
+
+#### Response:
+
+```json
+{
+  "message": "User A104 successfully updated"
+}
+```
+
+> **Note:** If the updated user is currently logged in, they must **log in again** to refresh their token and apply changes.
+
+---
+
+### Delete a User
+
+**DELETE** `http://localhost:8080/admin/delete-user/A104`
+
+Soft deletes a user (marks them as deleted). Cannot be undone.
+
+**Headers:**
+
+```
+Authorization: Bearer <admin_token>
+```
+
+#### Response:
+
+```json
+{
+  "message": "User A104 deleted successfully"
+}
+```
+> Note this wont work with A0001 - hard coded the Original ADMIN user to stay forever
 
 
 ---
@@ -497,11 +552,42 @@ More info soon
 
 ---
 
-## 14. Audit Log API
+## 14. Audit Log API - View Audit Logs
 
 > Admin-only API to view all audit logs of evidence actions.
 
-More info soon
+
+**GET** `http://localhost:8080/admin/audit-log`
+
+Returns a list of all evidence-related admin actions (add, update, delete).
+
+**Headers:**
+
+```
+Authorization: Bearer <admin_token>
+```
+
+#### Sample Response:
+
+```json
+[
+  {
+    "id": 1,
+    "action": "added",
+    "evidence_id": 10,
+    "user_id": "A001",
+    "timestamp": "2024-03-30T14:01:25Z"
+  },
+  {
+    "id": 2,
+    "action": "soft_deleted",
+    "evidence_id": 15,
+    "user_id": "A001",
+    "timestamp": "2024-03-30T14:05:00Z"
+  }
+]
+```
+> NOTE: If you try this without doing anything to evidence you well get an empty json back
 
 ---
 
