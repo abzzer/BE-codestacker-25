@@ -156,14 +156,20 @@ func GetCaseDetails(caseNumber string) (*models.CaseDetailsResponse, error) {
 	`
 
 	var result models.CaseDetailsResponse
+	var levelStr, statusStr string
+
 	err := database.DB.QueryRow(context.Background(), query, caseNumber).Scan(&result.CaseNumber,
 		&result.CaseName, &result.Description, &result.Area, &result.City, &result.CreatedBy,
-		&result.CreatedAt, &result.CaseType, &result.Level, &result.Status, &result.ReportedBy, &result.NumAssignees,
+		&result.CreatedAt, &result.CaseType, &levelStr, &statusStr, &result.ReportedBy, &result.NumAssignees,
 		&result.NumEvidences, &result.NumSuspects, &result.NumVictims, &result.NumWitnesses)
 
 	if err != nil {
 		return nil, err
 	}
+
+	result.Level = models.CaseLevel(levelStr)
+	result.Status = models.CaseStatus(statusStr)
+
 	return &result, nil
 }
 

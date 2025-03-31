@@ -184,8 +184,8 @@ func ExtractURLsFromCase(caseNumber string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var urls []string
-	regex := regexp.MustCompile(`https?://[^\s]+`)
+	urls := []string{}
+	regex := regexp.MustCompile(`https?://[^\s"'<>]+`)
 
 	for rows.Next() {
 		var content string
@@ -194,7 +194,9 @@ func ExtractURLsFromCase(caseNumber string) ([]string, error) {
 		}
 
 		matches := regex.FindAllString(content, -1)
-		urls = append(urls, matches...)
+		if matches != nil {
+			urls = append(urls, matches...)
+		}
 	}
 
 	return urls, nil

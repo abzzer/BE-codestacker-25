@@ -34,7 +34,8 @@ func RegisterRoutes(app *fiber.App) {
 	caseRoutes.Patch("/:caseid/status", handlers.UpdateCaseStatusHandler)
 
 	viewCase := app.Group("/case", middleware.JWTMiddleware("admin", "investigator", "officer"))
-	viewCase.Get("/:caseid", handlers.GetCaseDetailsHandler)
+	viewCase.Get("/partial/:caseid", handlers.GetPartialCaseDetailsHandler)
+	viewCase.Get("/full/:caseid", handlers.GetFullCaseDetailsHandler)
 	viewCase.Get("/pdf/:caseid", handlers.GenerateCasePDFHandler)
 
 	viewEvidence := app.Group("/evidence", middleware.JWTMiddleware("admin", "investigator", "officer"))

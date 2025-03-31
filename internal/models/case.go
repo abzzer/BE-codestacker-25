@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // DON'T FORGET OFFICER USE CASES!! COME BACK TO REVIEW THEM LATER!! -> Like they can change leve beacsuse officer
 // also update the reports related to the specific case -> Ensure we move them up and then also link them to case
 
@@ -88,7 +90,7 @@ type CaseDetailsResponse struct {
 	Area         string     `json:"area"`
 	City         string     `json:"city"`
 	CreatedBy    string     `json:"created_by"`
-	CreatedAt    string     `json:"created_at"`
+	CreatedAt    time.Time  `json:"created_at"`
 	CaseType     string     `json:"case_type"`
 	Level        CaseLevel  `json:"level"`
 	Status       CaseStatus `json:"status"`
@@ -98,4 +100,11 @@ type CaseDetailsResponse struct {
 	NumSuspects  int        `json:"num_suspects"`
 	NumVictims   int        `json:"num_victims"`
 	NumWitnesses int        `json:"num_witnesses"`
+}
+
+type FullCaseDetails struct {
+	CaseDetailsResponse
+	Assignees []User           `json:"assignees"`
+	Evidence  []EvidenceWithID `json:"evidence"`
+	People    []Person         `json:"people"`
 }

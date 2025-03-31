@@ -48,13 +48,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- CREATE FUNCTION soft_delete_evidence(evidence_id INT, user_id TEXT) RETURNS VOID AS $$
--- BEGIN
---     UPDATE evidence SET deleted = TRUE WHERE id = evidence_id;
---     INSERT INTO audit_logs (action, evidence_id, user_id) VALUES ('soft_deleted', evidence_id, user_id);
--- END;
--- $$ LANGUAGE plpgsql;
-
 -- TABLES ---------------------------
 
 CREATE TABLE users (
@@ -110,11 +103,10 @@ CREATE TABLE evidence (
 CREATE TABLE audit_logs (
     id SERIAL PRIMARY KEY,
     action audit_action_enum NOT NULL,
-    evidence_id INT REFERENCES evidence(id) ON DELETE CASCADE,
+    evidence_id INT,
     user_id TEXT NOT NULL REFERENCES users(id),
     timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
-
 
 
 CREATE TABLE reports (

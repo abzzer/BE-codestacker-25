@@ -23,6 +23,14 @@ type EvidenceFromID struct {
 	Size    string       `json:"size"`
 }
 
+type EvidenceWithID struct {
+	ID      int          `json:"id"`
+	Type    EvidenceType `json:"type"`
+	Remarks string       `json:"remarks"`
+	Content string       `json:"content"`
+	Size    string       `json:"size"`
+}
+
 type ImageFromID struct {
 	Type    EvidenceType `json:"type"`
 	Content string       `json:"content"`

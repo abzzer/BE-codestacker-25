@@ -1,7 +1,6 @@
 package state
 
 import (
-	"strconv"
 	"sync"
 	"time"
 )
@@ -18,41 +17,35 @@ const (
 
 type DeletionTracker struct {
 	mu     sync.RWMutex
-	status map[string]DeleteStatus
-	expiry map[string]time.Time
+	status map[int]DeleteStatus
+	expiry map[int]time.Time
 }
 
+// To keep it persistant
 var tracker = &DeletionTracker{
-	status: make(map[string]DeleteStatus),
-	expiry: make(map[string]time.Time),
+	status: make(map[int]DeleteStatus),
+	expiry: make(map[int]time.Time),
 }
 
-func makeKey(userID string, evidenceID int) string {
-	return userID + ":" + strconv.Itoa(evidenceID)
-}
-
-func SetStatus(userID string, evidenceID int, status DeleteStatus) {
-	key := makeKey(userID, evidenceID)
+func SetStatus(evidenceID int, status DeleteStatus) {
 	tracker.mu.Lock()
 	defer tracker.mu.Unlock()
-	tracker.status[key] = status
-	tracker.expiry[key] = time.Now().Add(5 * time.Minute)
+	tracker.status[evidenceID] = status
+	tracker.expiry[evidenceID] = time.Now().Add(5 * time.Minute)
 }
 
-func GetStatus(userID string, evidenceID int) DeleteStatus {
-	key := makeKey(userID, evidenceID)
+func GetStatus(evidenceID int) DeleteStatus {
 	tracker.mu.RLock()
 	defer tracker.mu.RUnlock()
-	if time.Now().After(tracker.expiry[key]) {
+	if exp, exists := tracker.expiry[evidenceID]; !exists || time.Now().After(exp) {
 		return ""
 	}
-	return tracker.status[key]
+	return tracker.status[evidenceID]
 }
 
-func ClearStatus(userID string, evidenceID int) {
-	key := makeKey(userID, evidenceID)
+func ClearStatus(evidenceID int) {
 	tracker.mu.Lock()
 	defer tracker.mu.Unlock()
-	delete(tracker.status, key)
-	delete(tracker.expiry, key)
+	delete(tracker.status, evidenceID)
+	delete(tracker.expiry, evidenceID)
 }

@@ -122,7 +122,7 @@ func AddPersonHandler(c *fiber.Ctx) error {
 	})
 }
 
-func GetCaseDetailsHandler(c *fiber.Ctx) error {
+func GetPartialCaseDetailsHandler(c *fiber.Ctx) error {
 	caseID := c.Params("caseid")
 	if caseID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -156,6 +156,41 @@ func GetCaseDetailsHandler(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(details)
+}
+
+func GetFullCaseDetailsHandler(c *fiber.Ctx) error {
+	caseID := c.Params("caseid")
+	if caseID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Case ID missing",
+		})
+	}
+	caseID = strings.ToUpper(caseID)
+
+	caseLevel, err := repository.GetCaseLevelByNumber(caseID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Case not found",
+		})
+	}
+
+	userRole := c.Locals("role").(string)
+	userClearance := c.Locals("clearance").(string)
+
+	if err := repository.CheckClearance(userRole, userClearance, caseLevel); err != nil {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	fullDetails, err := repository.GetFullCaseDetails(caseID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch full case details",
+		})
+	}
+
+	return c.JSON(fullDetails)
 }
 
 func AddOfficerToCaseHandler(c *fiber.Ctx) error {

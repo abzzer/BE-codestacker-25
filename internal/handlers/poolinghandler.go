@@ -15,8 +15,6 @@ func LongPollDeleteStatus(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid evidence ID"})
 	}
 
-	userID := c.Locals("user_id").(string)
-
 	timeout := time.After(30 * time.Second)
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -25,14 +23,13 @@ func LongPollDeleteStatus(c *fiber.Ctx) error {
 		select {
 		case <-timeout:
 			return c.JSON(fiber.Map{
-				"status":  state.GetStatus(userID, evidenceID),
+				"status":  state.GetStatus(evidenceID),
 				"message": "Timeout reached, no final status yet",
 			})
 		case <-ticker.C:
-			current := state.GetStatus(userID, evidenceID)
+			current := state.GetStatus(evidenceID)
 			if current == state.StatusDone || current == state.StatusFailed {
-				state.ClearStatus(userID, evidenceID)
-
+				state.ClearStatus(evidenceID)
 				return c.JSON(fiber.Map{
 					"status":  current,
 					"message": "Deletion status resolved",
